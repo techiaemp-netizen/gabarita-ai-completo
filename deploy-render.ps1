@@ -1,5 +1,5 @@
 # Deploy script for Render
-$apiKey = "rnd_YOUR_API_KEY_HERE"
+$apiKey = "rnd_fwSBtmlP5hkuFYbTWxFF83FHidRj"
 $repoUrl = "https://github.com/techiaemp-netizen/gabarita-ai-backend"
 $serviceName = "gabarita-ai-backend"
 
