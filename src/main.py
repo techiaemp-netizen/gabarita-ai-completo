@@ -21,7 +21,8 @@ def home():
     return jsonify({
         'message': 'Gabarita.AI Backend API',
         'status': 'online',
-        'version': '1.0.0',
+        'version': '1.0.1',
+        'timestamp': datetime.now().isoformat(),
         'endpoints': {
             'health': '/health',
             'auth': '/api/auth/*',
