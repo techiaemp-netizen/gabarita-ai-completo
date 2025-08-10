@@ -6,22 +6,42 @@ Gabarit-AI Backend
 from flask import Blueprint, request, jsonify
 import os
 import mercadopago
-import firebase_admin
-from firebase_admin import firestore
 from datetime import datetime, timedelta
 import hashlib
 import hmac
+from config import firebase_config
 
 payments_bp = Blueprint('payments', __name__)
-db = firestore.client()
 
 # Configurar Mercado Pago
-sdk = mercadopago.SDK(os.getenv('MERCADO_PAGO_ACCESS_TOKEN'))
+mercado_pago_token = os.getenv('MERCADO_PAGO_ACCESS_TOKEN')
+if mercado_pago_token and mercado_pago_token.strip() != '' and 'your_' not in mercado_pago_token:
+    try:
+        sdk = mercadopago.SDK(mercado_pago_token)
+        print("[PAYMENTS] ✅ Mercado Pago configurado com sucesso!")
+        if mercado_pago_token.startswith('TEST-'):
+            print("[PAYMENTS] 🧪 Modo TESTE ativo - use cartões de teste")
+        else:
+            print("[PAYMENTS] 🚀 Modo PRODUÇÃO ativo - pagamentos reais")
+    except Exception as e:
+        print(f"[PAYMENTS] ❌ Erro ao configurar Mercado Pago: {e}")
+        print("[PAYMENTS] 💡 Verifique se o token está correto no arquivo .env")
+        sdk = None
+else:
+    print("[PAYMENTS] ❌ Token do Mercado Pago não configurado")
+    print("[PAYMENTS] 📝 Configure MERCADO_PAGO_ACCESS_TOKEN no arquivo .env")
+    print("[PAYMENTS] 📖 Consulte CONFIGURACAO_FIREBASE_MERCADOPAGO.md para ajuda")
+    print("[PAYMENTS] 🔧 Modo desenvolvimento ativo - pagamentos desabilitados")
+    sdk = None
 
 @payments_bp.route('/api/pagamentos/criar', methods=['POST'])
 def criar_pagamento():
     """Criar preferência de pagamento no Mercado Pago"""
     try:
+        # Verificar se Mercado Pago está configurado
+        if sdk is None:
+            return jsonify({'error': 'Mercado Pago não configurado - modo desenvolvimento'}), 503
+            
         data = request.get_json()
         plano = data.get('plano')
         user_id = data.get('userId')
@@ -140,6 +160,10 @@ def webhook_pagamento():
 def status_pagamento(payment_id):
     """Verificar status de um pagamento"""
     try:
+        # Verificar se Mercado Pago está configurado
+        if sdk is None:
+            return jsonify({'error': 'Mercado Pago não configurado - modo desenvolvimento'}), 503
+            
         payment_info = sdk.payment().get(payment_id)
         
         if payment_info['status'] == 200:
@@ -220,6 +244,12 @@ def ativar_plano_usuario(transaction_data):
         user_id = transaction_data['userId']
         duracao = transaction_data['duracao']
         plano = transaction_data['plano']
+        
+        # Obter conexão com Firebase
+        db = firebase_config.get_db()
+        if db is None:
+            print("[PAYMENTS] Firebase não configurado - simulando ativação de plano")
+            return True
         
         # Calcular data de expiração
         data_expiracao = datetime.now() + timedelta(days=duracao)

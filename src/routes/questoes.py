@@ -17,7 +17,10 @@ def _buscar_questao_do_pool(usuario_id, cargo, bloco, tipo_conhecimento, modo_fo
     """Busca uma questão disponível no pool que o usuário ainda não respondeu"""
     try:
         print(f"🎯 Buscando questão no pool para usuário {usuario_id}")
-        db = firebase_config.get_firestore_client()
+        db = firebase_config.get_db()
+        if not db:
+            print("⚠️ Firebase não configurado, retornando None")
+            return None
         
         # Primeiro, buscar questões que o usuário já respondeu
         questoes_respondidas_ref = db.collection('questoes_respondidas')
@@ -78,7 +81,10 @@ def _salvar_questao_no_pool(questao_completa, cargo, bloco, tipo_conhecimento, c
     """Salva uma nova questão no pool para reutilização"""
     try:
         print(f"💾 Salvando questão no pool")
-        db = firebase_config.get_firestore_client()
+        db = firebase_config.get_db()
+        if not db:
+            print("⚠️ Firebase não configurado, retornando None")
+            return None
         
         questao_pool = {
             'questao': questao_completa['questao'],
@@ -112,7 +118,10 @@ def _registrar_questao_respondida(usuario_id, questao_id, respondida=False, acer
     """Registra que o usuário visualizou/respondeu uma questão"""
     try:
         print(f"📊 Registrando questão {questao_id} para usuário {usuario_id}")
-        db = firebase_config.get_firestore_client()
+        db = firebase_config.get_db()
+        if db is None:
+            print("⚠️ Firebase não configurado, não é possível registrar questão respondida")
+            return None
         
         questao_respondida = {
             'usuario_id': usuario_id,

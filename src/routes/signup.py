@@ -1,10 +1,9 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from firebase_admin import firestore
+from config.firebase_config import firebase_config
 import re
 
 signup_bp = Blueprint('signup', __name__)
-db = firestore.client()
 
 def validate_email(email):
     """Valida formato do email"""
@@ -65,17 +64,22 @@ def signup():
             }), 400
         
         # Verificar se email ja existe
-        users_ref = db.collection('users')
-        existing_user = users_ref.where('email', '==', email).limit(1).get()
-        
-        if existing_user:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Email ja cadastrado'
-            }), 409
-        
-        # Verificar se CPF ja existe
-        existing_cpf = users_ref.where('cpf', '==', cpf).limit(1).get()
+        db = firebase_config.get_db()
+        if db is None:
+            # Modo desenvolvimento sem Firebase - permitir cadastro
+            print("⚠️ Firebase não configurado, cadastro em modo desenvolvimento")
+        else:
+            users_ref = db.collection('users')
+            existing_user = users_ref.where('email', '==', email).limit(1).get()
+            
+            if existing_user:
+                return jsonify({
+                    'sucesso': False,
+                    'erro': 'Email ja cadastrado'
+                }), 409
+            
+            # Verificar se CPF ja existe
+            existing_cpf = users_ref.where('cpf', '==', cpf).limit(1).get()
         
         if existing_cpf:
             return jsonify({
@@ -93,7 +97,7 @@ def signup():
             'email': email,
             'password_hash': password_hash,
             'freeQuestionsRemaining': 3,
-            'createdAt': firestore.SERVER_TIMESTAMP,
+            'createdAt': 'desenvolvimento',  # Em desenvolvimento, usar string simples
             'totalAnswered': 0,
             'correctAnswers': 0,
             'planId': 'free',
@@ -101,8 +105,13 @@ def signup():
         }
         
         # Adicionar usuario
-        doc_ref = users_ref.add(user_data)
-        user_id = doc_ref[1].id
+        if db is not None:
+            doc_ref = users_ref.add(user_data)
+            user_id = doc_ref[1].id
+        else:
+            # Modo desenvolvimento - gerar ID simulado
+            import uuid
+            user_id = str(uuid.uuid4())
         
         return jsonify({
             'sucesso': True,
@@ -133,17 +142,37 @@ def login():
             }), 400
         
         # Buscar usuario por email
-        users_ref = db.collection('users')
-        user_query = users_ref.where('email', '==', email).limit(1).get()
-        
-        if not user_query:
+        db = firebase_config.get_db()
+        if db is None:
+            # Modo desenvolvimento - simular login
+            print("⚠️ Firebase não configurado, login em modo desenvolvimento")
+            user_data = {
+                'nomeCompleto': 'Usuário Teste',
+                'email': email,
+                'freeQuestionsRemaining': 3,
+                'totalAnswered': 0,
+                'correctAnswers': 0,
+                'planId': 'free',
+                'profileComplete': True,
+                'id': 'dev-user-123'
+            }
             return jsonify({
-                'sucesso': False,
-                'erro': 'Usuario nao encontrado'
-            }), 404
-        
-        user_doc = user_query[0]
-        user_data = user_doc.to_dict()
+                'sucesso': True,
+                'mensagem': 'Login realizado com sucesso (modo desenvolvimento)',
+                'usuario': user_data
+            }), 200
+        else:
+            users_ref = db.collection('users')
+            user_query = users_ref.where('email', '==', email).limit(1).get()
+            
+            if not user_query:
+                return jsonify({
+                    'sucesso': False,
+                    'erro': 'Usuario nao encontrado'
+                }), 404
+            
+            user_doc = user_query[0]
+            user_data = user_doc.to_dict()
         
         # Verificar senha
         if not check_password_hash(user_data.get('password_hash', ''), senha):

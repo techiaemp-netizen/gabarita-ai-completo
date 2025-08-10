@@ -121,7 +121,8 @@ def cadastro():
                 
                 # Salvar no Firestore
                 db = firebase_config.get_db()
-                db.collection('usuarios').document(user.uid).set(usuario_data)
+                if db is not None:
+                    db.collection('usuarios').document(user.uid).set(usuario_data)
                 
                 return jsonify({
                     'sucesso': True,
@@ -395,6 +396,10 @@ def _get_usuario_firestore(uid):
     """Busca dados do usuário no Firestore"""
     try:
         db = firebase_config.get_db()
+        if db is None:
+            print("⚠️ Firebase não configurado, não é possível buscar usuário")
+            return None
+            
         doc = db.collection('usuarios').document(uid).get()
         
         if doc.exists:
@@ -410,6 +415,10 @@ def _atualizar_ultimo_acesso(uid):
     """Atualiza o último acesso do usuário"""
     try:
         db = firebase_config.get_db()
+        if db is None:
+            print("⚠️ Firebase não configurado, não é possível atualizar último acesso")
+            return
+            
         db.collection('usuarios').document(uid).update({
             'ultimo_acesso': datetime.now().isoformat()
         })
