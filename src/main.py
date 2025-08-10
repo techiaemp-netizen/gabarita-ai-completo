@@ -16,6 +16,20 @@ app.register_blueprint(signup_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(payments_bp)
 
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({
+        'message': 'Gabarita.AI Backend API',
+        'status': 'online',
+        'version': '1.0.0',
+        'endpoints': {
+            'health': '/health',
+            'auth': '/api/auth/*',
+            'questoes': '/api/questoes/*',
+            'payments': '/api/payments/*'
+        }
+    })
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({
