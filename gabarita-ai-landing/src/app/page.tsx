@@ -71,7 +71,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">Gabarita.AI</span>
+              <span className="text-xl font-bold text-gray-900">Gabarit-AI</span>
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#recursos" className="text-gray-600 hover:text-gray-900 transition-colors">Recursos</a>
@@ -80,8 +80,8 @@ export default function LandingPage() {
               <a href="#contato" className="text-gray-600 hover:text-gray-900 transition-colors">Contato</a>
             </nav>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => window.location.href = '/login'}>Entrar</Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => window.location.href = '/signup'}>Começar Grátis</Button>
+              <Button variant="ghost" onClick={() => window.location.href = 'https://gabarita-ai-frontend-pied.vercel.app/login'}>Entrar</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => window.location.href = 'https://gabarita-ai-frontend-pied.vercel.app/signup'}>Começar Grátis</Button>
             </div>
           </div>
         </div>
@@ -128,11 +128,11 @@ export default function LandingPage() {
               {...fadeInUp}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-4" onClick={() => window.location.href = '/signup'}>
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-4" onClick={() => window.location.href = 'https://gabarita-ai-frontend-pied.vercel.app/signup'}>
                 <Play className="w-5 h-5 mr-2" />
                 Começar Agora - Grátis
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={() => window.location.href = '/demo'}>
+              <Button variant="outline" size="lg" className="text-lg px-8 py-4" onClick={() => window.location.href = 'https://gabarita-ai-frontend-pied.vercel.app/simulado'}>
                 Ver Demonstração
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -275,7 +275,7 @@ export default function LandingPage() {
           <p className="text-xl text-blue-100 mb-8">
             Junte-se a milhares de estudantes que já estão usando a IA para passar em concursos
           </p>
-          <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4" onClick={() => window.location.href = '/signup'}>
+          <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4" onClick={() => window.location.href = 'https://gabarita-ai-frontend-pied.vercel.app/signup'}>
             <Zap className="w-5 h-5 mr-2" />
             Começar Gratuitamente
           </Button>
@@ -300,34 +300,50 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {[
               {
-                name: "Trial Free",
-                price: "R$ 2,99",
-                period: "3 questões",
-                description: "Experimente nossa plataforma",
+                name: "Trial Gratuito",
+                price: "R$ 0,00",
+                period: "Grátis",
+                description: "Experimente gratuitamente",
                 features: [
                   "3 questões gratuitas",
-                  "Acesso básico à plataforma",
                   "Correção automática",
-                  "Estatísticas básicas"
+                  "Feedback básico",
+                  "Sem compromisso",
+                  "Teste agora mesmo"
                 ],
                 popular: false,
-                buttonText: "Começar Grátis",
+                buttonText: "Escolher Trial Gratuito",
                 buttonVariant: "outline" as const
               },
               {
-                name: "Black CNU",
-                price: "R$ 97",
-                period: "/mês",
-                description: "Para quem quer passar no CNU",
+                name: "Semanal",
+                price: "R$ 5,90",
+                period: "7 dias",
+                description: "Acesso básico por 1 semana",
                 features: [
                   "Questões ilimitadas",
-                  "Simulados completos",
-                  "Correção de redação IA",
-                  "Plano de estudos personalizado (Em breve)",
-                  "Análise detalhada de desempenho",
+                  "Simulados personalizados",
+                  "Relatórios detalhados",
+                  "Ranking nacional",
+                  "Suporte por email"
+                ],
+                popular: false,
+                buttonText: "Assinar Agora",
+                buttonVariant: "outline" as const
+              },
+              {
+                name: "Mensal",
+                price: "R$ 14,90",
+                period: "30 dias",
+                description: "Acesso completo por 1 mês",
+                features: [
+                  "Questões ilimitadas",
+                  "Simulados personalizados",
+                  "Relatórios detalhados",
+                  "Ranking nacional",
                   "Suporte prioritário"
                 ],
                 popular: true,
@@ -335,20 +351,59 @@ export default function LandingPage() {
                 buttonVariant: "default" as const
               },
               {
-                name: "Premium",
-                price: "R$ 197",
-                period: "/mês",
-                description: "Acesso completo a todos os concursos",
+                name: "Bimestral",
+                price: "R$ 20,00",
+                period: "60 dias",
+                description: "Acesso completo por 2 meses",
                 features: [
-                  "Todos os recursos do Black CNU",
-                  "Acesso a todos os concursos",
-                  "Mentoria individual",
-                  "Grupos de estudo exclusivos",
-                  "Material complementar",
-                  "Garantia de aprovação*"
+                  "Questões ilimitadas",
+                  "Simulados personalizados",
+                  "Relatórios detalhados",
+                  "Ranking nacional",
+                  "Suporte prioritário"
                 ],
                 popular: false,
-                buttonText: "Assinar Premium",
+                buttonText: "Assinar Agora",
+                buttonVariant: "outline" as const
+              },
+              {
+                name: "Premium",
+                price: "R$ 40,00",
+                period: "30 dias",
+                description: "Com recursos adicionais, respostas de perguntas, botão de macete e modo foco",
+                features: [
+                  "Questões ilimitadas",
+                  "Simulados avançados",
+                  "Análise detalhada",
+                  "Botões de macete",
+                  "Tire sua dúvida com IA",
+                  "Modo foco",
+                  "Suporte prioritário"
+                ],
+                popular: false,
+                buttonText: "Assinar Agora",
+                buttonVariant: "outline" as const
+              },
+              {
+                name: "Até o Final do Concurso",
+                price: "R$ 70,00",
+                originalPrice: "R$ 100,00",
+                period: "Até o final do concurso",
+                description: "Com recursos adicionais, respostas de perguntas, botão de macete, modo foco e Redação",
+                features: [
+                  "Questões ilimitadas",
+                  "Simulados avançados",
+                  "Análise detalhada",
+                  "Botões de macete",
+                  "Tire sua dúvida com IA",
+                  "Mentoria virtual",
+                  "Modo foco",
+                  "Correção de redação",
+                  "Suporte VIP"
+                ],
+                popular: false,
+                promocao: true,
+                buttonText: "Assinar Agora",
                 buttonVariant: "outline" as const
               }
             ].map((plan, index) => (
@@ -373,13 +428,30 @@ export default function LandingPage() {
                     </span>
                   </div>
                 )}
+                {plan.promocao && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+                      🔥 Promoção
+                    </span>
+                  </div>
+                )}
                 
                 <div className="text-center mb-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                   <p className="text-gray-600 mb-4">{plan.description}</p>
                   <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-600 ml-1">{plan.period}</span>
+                    {plan.originalPrice && (
+                      <div className="flex flex-col items-center mr-2">
+                        <span className="text-lg text-gray-400 line-through">{plan.originalPrice}</span>
+                        <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          -30% OFF
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex flex-col items-center">
+                      <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                      <span className="text-gray-600 text-sm">{plan.period}</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -400,7 +472,7 @@ export default function LandingPage() {
                       ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                       : ''
                   }`}
-                  onClick={() => window.location.href = '/signup'}
+                  onClick={() => window.location.href = 'https://gabarita-ai-frontend-pied.vercel.app/signup'}
                 >
                   {plan.buttonText}
                 </Button>
@@ -433,7 +505,7 @@ export default function LandingPage() {
               {
                 name: "Maria Silva",
                 role: "Estudante CNU 2025",
-                content: "O Gabarita.AI tem uma abordagem inovadora! A IA identifica exatamente onde tenho dificuldades e me ajuda a focar nos pontos certos para melhorar.",
+                content: "O Gabarit-AI tem uma abordagem inovadora! A IA identifica exatamente onde tenho dificuldades e me ajuda a focar nos pontos certos para melhorar.",
                 rating: 5
               },
               {
@@ -488,7 +560,7 @@ export default function LandingPage() {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <Brain className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">Gabarita.AI</span>
+                <span className="text-xl font-bold">Gabarit-AI</span>
               </div>
               <p className="text-gray-400 mb-6">
                 A plataforma de estudos mais avançada do Brasil para concursos públicos.
@@ -526,7 +598,7 @@ export default function LandingPage() {
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Gabarita.AI. Todos os direitos reservados.</p>
+            <p>&copy; 2024 Gabarit-AI. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>

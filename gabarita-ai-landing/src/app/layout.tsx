@@ -5,21 +5,21 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Gabarita.AI - Prepare-se para o CNU com Inteligência Artificial',
+  title: 'Gabarit-AI - Prepare-se para o CNU com Inteligência Artificial',
   description: 'A plataforma mais avançada para estudar para concursos públicos. Questões personalizadas, simulados inteligentes e correção automática de redações.',
   keywords: 'CNU, concurso público, inteligência artificial, questões, simulados, redação, estudos',
-  authors: [{ name: 'Gabarita.AI' }],
+  authors: [{ name: 'Gabarit-AI' }],
   openGraph: {
-    title: 'Gabarita.AI - Prepare-se para o CNU com IA',
+    title: 'Gabarit-AI - Prepare-se para o CNU com IA',
     description: 'Revolucione seus estudos para concursos com nossa plataforma de IA avançada.',
     url: 'https://gabarita.ai',
-    siteName: 'Gabarita.AI',
+    siteName: 'Gabarit-AI',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Gabarita.AI - Plataforma de estudos com IA',
+        alt: 'Gabarit-AI - Plataforma de estudos com IA',
       },
     ],
     locale: 'pt_BR',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Gabarita.AI - Prepare-se para o CNU com IA',
+    title: 'Gabarit-AI - Prepare-se para o CNU com IA',
     description: 'Revolucione seus estudos para concursos com nossa plataforma de IA avançada.',
     images: ['/og-image.jpg'],
   },

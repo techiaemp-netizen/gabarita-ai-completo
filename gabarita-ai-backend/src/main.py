@@ -6,6 +6,7 @@ from services.chatgpt_service import chatgpt_service
 from routes.questoes import CONTEUDOS_EDITAL
 from routes.signup import signup_bp
 from routes.questoes import questoes_bp
+from routes.planos import planos_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -13,6 +14,7 @@ CORS(app)
 # Registrar blueprints
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
+app.register_blueprint(planos_bp, url_prefix='/api')
 
 @app.route('/health', methods=['GET'])
 def health_check():
