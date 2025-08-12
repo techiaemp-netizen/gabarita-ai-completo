@@ -2,11 +2,12 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 from datetime import datetime
-from services.chatgpt_service import chatgpt_service
-from routes.questoes import CONTEUDOS_EDITAL
-from routes.signup import signup_bp
-from routes.questoes import questoes_bp
-from routes.planos import planos_bp
+from .services.chatgpt_service import chatgpt_service
+from .routes.questoes import CONTEUDOS_EDITAL
+from .routes.signup import signup_bp
+from .routes.questoes import questoes_bp
+from .routes.planos import planos_bp
+from .routes.jogos import jogos_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -15,6 +16,7 @@ CORS(app)
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
+app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
 
 @app.route('/health', methods=['GET'])
 def health_check():
