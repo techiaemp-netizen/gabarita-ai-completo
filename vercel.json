@@ -1,18 +1,19 @@
 {
-  "buildCommand": "cd gabarita-ai-frontend && npm run build",
-  "outputDirectory": "gabarita-ai-frontend/.next",
-  "installCommand": "cd gabarita-ai-frontend && npm install",
-  "devCommand": "cd gabarita-ai-frontend && npm run dev",
-  "framework": "nextjs",
-  "functions": {
-    "gabarita-ai-frontend/app/**/*.{js,ts,jsx,tsx}": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "rewrites": [
+  "version": 2,
+  "name": "gabarita-ai-frontend",
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/gabarita-ai-frontend/$1"
+      "src": "gabarita-ai-frontend/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/gabarita-ai-frontend/$1"
     }
   ]
 }
