@@ -43,14 +43,25 @@ def get_blocos_cargos():
         
         # Inverter a estrutura: bloco -> [cargos]
         for cargo, blocos_data in CONTEUDOS_EDITAL.items():
-            for bloco in blocos_data.keys():
-                if bloco not in blocos_cargos:
-                    blocos_cargos[bloco] = []
-                blocos_cargos[bloco].append(cargo)
+            # Verificar se blocos_data é um dicionário ou lista
+            if isinstance(blocos_data, dict):
+                # Estrutura nova: cargo -> {bloco: {conhecimentos_especificos: [...]}}
+                for bloco in blocos_data.keys():
+                    if bloco not in blocos_cargos:
+                        blocos_cargos[bloco] = []
+                    blocos_cargos[bloco].append(cargo)
+            else:
+                # Estrutura antiga: cargo -> [conhecimentos] - assumir bloco padrão
+                print(f"Aviso: Cargo {cargo} tem estrutura antiga (lista), ignorando...")
+                continue
         
         # Criar listas únicas
         todos_blocos = list(blocos_cargos.keys())
         todos_cargos = list(CONTEUDOS_EDITAL.keys())
+        
+        print(f"Debug: Encontrados {len(todos_blocos)} blocos e {len(todos_cargos)} cargos")
+        print(f"Debug: Blocos: {todos_blocos[:3]}...")  # Primeiros 3 blocos
+        print(f"Debug: Cargos: {todos_cargos[:3]}...")   # Primeiros 3 cargos
         
         return jsonify({
             'sucesso': True,
@@ -63,6 +74,8 @@ def get_blocos_cargos():
         
     except Exception as e:
         print(f"Erro ao obter opções blocos-cargos: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'sucesso': False,
             'erro': 'Erro interno do servidor'
