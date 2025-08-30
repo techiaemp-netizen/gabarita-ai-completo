@@ -76,7 +76,7 @@ def listar_jogos():
     try:
         usuario_id = request.args.get('usuario_id')
         if not usuario_id:
-            return jsonify({'erro': 'ID do usuário é obrigatório'}), 400
+            return jsonify({'error': 'User ID is required'}), 400
         
         # Buscar plano do usuário
         plano_usuario = obter_plano_usuario(usuario_id)
@@ -117,10 +117,10 @@ def iniciar_jogo(jogo_tipo):
         dificuldade = data.get('dificuldade', 'medio')
         
         if not usuario_id:
-            return jsonify({'erro': 'ID do usuário é obrigatório'}), 400
+            return jsonify({'error': 'User ID is required'}), 400
         
         if jogo_tipo not in JOGOS_CONFIG:
-            return jsonify({'erro': 'Tipo de jogo inválido'}), 400
+            return jsonify({'error': 'Invalid game type'}), 400
         
         # Verificar se o usuário tem acesso ao jogo
         plano_usuario = obter_plano_usuario(usuario_id)
@@ -128,8 +128,8 @@ def iniciar_jogo(jogo_tipo):
         
         if plano_usuario not in config_jogo['planos_permitidos']:
             return jsonify({
-                'erro': 'Acesso negado',
-                'mensagem': 'Upgrade para Premium necessário para este jogo'
+                'error': 'Access denied',
+                'message': 'Premium upgrade required for this game'
             }), 403
         
         # Gerar sessão de jogo com dificuldade
@@ -741,7 +741,7 @@ def gerar_grid_palavras_cruzadas(palavras):
 
 def obter_plano_usuario(usuario_id):
     """Obtém o plano do usuário"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -759,7 +759,7 @@ def obter_plano_usuario(usuario_id):
 
 def salvar_sessao_jogo(sessao):
     """Salva a sessão do jogo no Firebase"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -770,7 +770,7 @@ def salvar_sessao_jogo(sessao):
 
 def buscar_sessao_jogo(sessao_id):
     """Busca uma sessão de jogo no Firebase"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -785,7 +785,7 @@ def buscar_sessao_jogo(sessao_id):
 
 def atualizar_sessao_jogo(sessao_id, sessao_atualizada):
     """Atualiza uma sessão de jogo no Firebase"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -796,7 +796,7 @@ def atualizar_sessao_jogo(sessao_id, sessao_atualizada):
 
 def atualizar_pontuacao_usuario(usuario_id, pontos):
     """Atualiza a pontuação do usuário"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -817,7 +817,7 @@ def atualizar_pontuacao_usuario(usuario_id, pontos):
 
 def obter_ranking_jogos(bloco, limite):
     """Obtém o ranking de jogadores"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -846,7 +846,7 @@ def obter_ranking_jogos(bloco, limite):
 
 def obter_estatisticas_usuario(usuario_id):
     """Obtém estatísticas de jogos do usuário"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -1146,7 +1146,7 @@ def sistema_roleta():
 
 def verificar_limite_roleta(usuario_id):
     """Verifica se o usuário pode usar a roleta hoje"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -1180,7 +1180,7 @@ def sortear_premio_roleta(premios):
 
 def aplicar_premio_roleta(usuario_id, premio):
     """Aplica o prêmio sorteado ao usuário"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()
@@ -1213,7 +1213,7 @@ def aplicar_premio_roleta(usuario_id, premio):
 
 def registrar_uso_roleta(usuario_id):
     """Registra o uso da roleta pelo usuário"""
-    if firebase_config.is_configured():
+    if firebase_config.is_connected():
         try:
             from firebase_admin import firestore
             db = firestore.client()

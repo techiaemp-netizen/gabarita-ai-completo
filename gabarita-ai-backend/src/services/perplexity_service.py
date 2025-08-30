@@ -10,7 +10,7 @@ class PerplexityService:
     def __init__(self):
         self.api_key = os.getenv('PERPLEXITY_API_KEY', 'pplx-dummy-key')
         self.base_url = "https://api.perplexity.ai/chat/completions"
-        self.model = "llama-3.1-sonar-small-128k-online"
+        self.model = "sonar-pro"
         
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -192,6 +192,36 @@ class PerplexityService:
         }
         
         return conteudos.get(tema, f"Conteúdo sobre {tema} - consulte fontes oficiais do Ministério da Saúde.")
+    
+    def gerar_explicacao(self, prompt_explicacao: str) -> Optional[str]:
+        """Gera explicação usando Perplexity"""
+        try:
+            response = requests.post(
+                self.base_url,
+                headers=self.headers,
+                json={
+                    "model": self.model,
+                    "messages": [
+                        {"role": "system", "content": "Você é um tutor especializado em concursos públicos brasileiros."},
+                        {"role": "user", "content": prompt_explicacao}
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 800
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                return content.strip()
+            else:
+                print(f"❌ Erro na API Perplexity: {response.status_code}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Erro ao gerar explicação: {e}")
+            return None
     
     def _extrair_json_resposta(self, resposta: str) -> Optional[Dict[str, Any]]:
         """Extrai JSON da resposta da API"""

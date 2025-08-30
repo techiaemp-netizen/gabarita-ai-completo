@@ -184,3 +184,4 @@ node_modules/
 # Configuration files with sensitive data
 config.py
 secrets.py
+.vercel

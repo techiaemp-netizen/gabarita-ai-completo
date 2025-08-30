@@ -6,7 +6,6 @@ from datetime import datetime
 planos_bp = Blueprint('planos', __name__)
 
 @planos_bp.route('/planos', methods=['GET'])
-@planos_bp.route('/plans', methods=['GET'])  # Alias em inglês
 def listar_planos():
     """Lista todos os planos disponíveis"""
     try:
@@ -144,7 +143,7 @@ def obter_plano_usuario():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({'error': 'Authorization token is required'}), 401
         
         token = auth_header.split(' ')[1]
         
@@ -170,7 +169,7 @@ def ativar_plano():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({'error': 'Authorization token is required'}), 401
         
         token = auth_header.split(' ')[1]
         user_id = token
@@ -180,7 +179,7 @@ def ativar_plano():
         metodo_pagamento = data.get('metodo_pagamento')
         
         if not tipo_plano:
-            return jsonify({'erro': 'Tipo de plano é obrigatório'}), 400
+            return jsonify({'error': 'Plan type is required'}), 400
         
         # Ativar o plano
         plano_info = plano_service.ativar_plano(user_id, tipo_plano, metodo_pagamento)
@@ -204,7 +203,7 @@ def verificar_acesso():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({'error': 'Authorization token is required'}), 401
         
         token = auth_header.split(' ')[1]
         user_id = token
@@ -213,7 +212,7 @@ def verificar_acesso():
         recurso = data.get('recurso')
         
         if not recurso:
-            return jsonify({'erro': 'Recurso é obrigatório'}), 400
+            return jsonify({'error': 'Resource is required'}), 400
         
         tem_acesso = plano_service.verificar_acesso_recurso(user_id, recurso)
         
@@ -234,7 +233,7 @@ def obter_limite_questoes():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({'error': 'Authorization token is required'}), 401
         
         token = auth_header.split(' ')[1]
         user_id = token
@@ -258,7 +257,7 @@ def processar_pagamento():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({'error': 'Authorization token is required'}), 401
         
         token = auth_header.split(' ')[1]
         user_id = token
@@ -305,7 +304,7 @@ def obter_historico_planos():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({'error': 'Authorization token is required'}), 401
         
         token = auth_header.split(' ')[1]
         user_id = token

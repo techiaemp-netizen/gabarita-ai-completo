@@ -158,18 +158,18 @@ class PlanoService:
             return plano_info
             
         except Exception as e:
-            print(f"Erro ao obter plano do usuário: {e}")
+            print(f"Error getting user plan: {e}")
             return self._plano_padrao()
     
     def ativar_plano(self, user_id, tipo_plano, metodo_pagamento=None):
         """Ativa um plano para o usuário"""
         try:
             if tipo_plano not in self.TIPOS_PLANOS.values():
-                raise ValueError(f"Tipo de plano inválido: {tipo_plano}")
+                raise ValueError(f"Invalid plan type: {tipo_plano}")
             
             # Verificar se usuário já usou plano promo
             if tipo_plano == 'promo' and self._usuario_ja_usou_promo(user_id):
-                raise ValueError("Usuário já utilizou o plano promocional")
+                raise ValueError("User has already used the promotional plan")
             
             # Calcular data de expiração
             data_expiracao = self._calcular_data_expiracao(tipo_plano)
@@ -198,7 +198,7 @@ class PlanoService:
             return plano_info
             
         except Exception as e:
-            print(f"Erro ao ativar plano: {e}")
+            print(f"Error activating plan: {e}")
             raise e
     
     def verificar_acesso_recurso(self, user_id, recurso):
@@ -211,7 +211,7 @@ class PlanoService:
             return recursos.get(recurso, False)
             
         except Exception as e:
-            print(f"Erro ao verificar acesso ao recurso: {e}")
+            print(f"Error checking resource access: {e}")
             return False
     
     def obter_limite_questoes(self, user_id):
@@ -228,7 +228,7 @@ class PlanoService:
                 return None  # Ilimitado
                 
         except Exception as e:
-            print(f"Erro ao obter limite de questões: {e}")
+            print(f"Error getting question limit: {e}")
             return 3  # Padrão gratuito
     
     def _plano_padrao(self):
@@ -278,7 +278,7 @@ class PlanoService:
             return len(historico) > 0
             
         except Exception as e:
-            print(f"Erro ao verificar uso do plano promo: {e}")
+            print(f"Error checking promo plan usage: {e}")
             return False
     
     def _reverter_plano_gratuito(self, user_id):
@@ -294,7 +294,7 @@ class PlanoService:
             })
             
         except Exception as e:
-            print(f"Erro ao reverter para plano gratuito: {e}")
+            print(f"Error reverting to free plan: {e}")
     
     def listar_planos(self):
         """Lista todos os planos disponíveis"""
@@ -362,7 +362,7 @@ class PlanoService:
             self.db.collection('historico_planos').add(historico)
             
         except Exception as e:
-            print(f"Erro ao registrar histórico de plano: {e}")
+            print(f"Error registering plan history: {e}")
 
 # Instância global do serviço de planos
 plano_service = PlanoService()

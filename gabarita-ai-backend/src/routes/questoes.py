@@ -7,6 +7,7 @@ from ..services.perplexity_service import perplexity_service
 from ..config.firebase_config import firebase_config
 from datetime import datetime
 import uuid
+import re
 
 questoes_bp = Blueprint('questoes', __name__)
 
@@ -23,7 +24,7 @@ def responder_questao():
         for field in required_fields:
             if field not in data:
                 return jsonify({
-                    'erro': f'Campo obrigatório ausente: {field}'
+                    'error': f'Required field missing: {field}'
                 }), 400
         
         questao_id = data['questao_id']
@@ -37,7 +38,7 @@ def responder_questao():
         acertou = alternativa_escolhida == gabarito_simulado
         
         # Atualizar estatísticas do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             try:
                 from firebase_admin import firestore
                 db = firestore.client()
@@ -75,25 +76,49 @@ def responder_questao():
             except Exception as e:
                 print(f"Erro ao atualizar Firestore: {e}")
         
-        # Gerar explicação usando Perplexity para questões erradas
+        # PECLEST: Gerar feedback detalhado usando Perplexity para questões erradas
+        feedback_peclest = None
         explicacao = "Explicação não disponível no momento."
+        
         if not acertou:
             try:
-                prompt_explicacao = f"""
-                Explique de forma didática por que a alternativa {gabarito_simulado} é a correta 
-                para uma questão sobre o tema relacionado ao CNU 2025.
-                Seja claro, objetivo e educativo.
-                """
-                explicacao = perplexity_service.gerar_explicacao(prompt_explicacao)
+                # Simular dados da questão (em produção, buscar do banco)
+                questao_texto = f"Questão simulada sobre CNU 2025 (ID: {questao_id})"
+                alternativa_correta = f"Alternativa {gabarito_simulado}"
+                tema_questao = "CNU 2025"
+                
+                # Usar PECLEST - gerar_feedback_erro do Perplexity
+                print(f"🔥 PECLEST: Gerando feedback detalhado para erro...")
+                feedback_peclest = perplexity_service.gerar_feedback_erro(
+                    questao=questao_texto,
+                    alternativa_escolhida=f"Alternativa {alternativa_escolhida}",
+                    alternativa_correta=alternativa_correta,
+                    tema=tema_questao
+                )
+                
+                if feedback_peclest:
+                    print(f"✅ PECLEST: Feedback gerado com sucesso")
+                    explicacao = feedback_peclest.get('explicacao_erro', 'Feedback não disponível')
+                else:
+                    raise Exception("PECLEST não retornou feedback")
+                    
             except Exception as e:
-                print(f"Erro ao gerar explicação Perplexity: {e}")
-                # Fallback para ChatGPT se Perplexity falhar
+                print(f"❌ Erro PECLEST: {e}")
+                # Fallback para explicação simples com ChatGPT
                 try:
+                    prompt_explicacao = f"""
+                    Explique de forma didática por que a alternativa {gabarito_simulado} é a correta 
+                    para uma questão sobre o tema relacionado ao CNU 2025.
+                    Seja claro, objetivo e educativo.
+                    """
                     explicacao = chatgpt_service.gerar_explicacao(prompt_explicacao)
+                    print(f"✅ Fallback ChatGPT: Explicação gerada")
                 except Exception as e2:
-                    print(f"Erro ao gerar explicação ChatGPT: {e2}")
+                    print(f"❌ Erro Fallback ChatGPT: {e2}")
+                    explicacao = "Explicação temporariamente indisponível. Tente novamente."
         
-        return jsonify({
+        # Preparar resposta com dados do PECLEST
+        resposta = {
             'sucesso': True,
             'acertou': acertou,
             'gabarito': gabarito_simulado,
@@ -101,7 +126,22 @@ def responder_questao():
             'alternativa_escolhida': alternativa_escolhida,
             'tempo_resposta': tempo_resposta,
             'estatisticas': novas_stats if 'novas_stats' in locals() else None
-        })
+        }
+        
+        # Adicionar dados completos do PECLEST se disponível
+        if feedback_peclest:
+            resposta['peclest'] = {
+                'explicacao_erro': feedback_peclest.get('explicacao_erro'),
+                'conceitos_importantes': feedback_peclest.get('conceitos_importantes'),
+                'fontes_estudo': feedback_peclest.get('fontes_estudo'),
+                'dicas': feedback_peclest.get('dicas'),
+                'ativo': True
+            }
+            print(f"📊 PECLEST: Dados completos incluídos na resposta")
+        else:
+            resposta['peclest'] = {'ativo': False}
+        
+        return jsonify(resposta)
         
     except Exception as e:
         print(f"Erro ao processar resposta: {e}")
@@ -122,7 +162,7 @@ def chat_tira_duvidas():
         for field in required_fields:
             if field not in data:
                 return jsonify({
-                    'erro': f'Campo obrigatório ausente: {field}'
+                    'error': f'Required field missing: {field}'
                 }), 400
         
         questao_id = data['questao_id']
@@ -278,7 +318,7 @@ def buscar_estatisticas(usuario_id):
     Rota para buscar estatísticas do usuário
     """
     try:
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             try:
                 from firebase_admin import firestore
                 db = firestore.client()
@@ -377,6 +417,26 @@ CONTEUDOS_EDITAL = {
                 'Benefícios, benefícios eventuais, qualidade de segurado, avaliação biopsicossocial',
                 'Legislação, perícia, acompanhamento médico, promoção à saúde',
                 'Acidentes do trabalho, doenças relacionadas, riscos ocupacionais e legislações aplicáveis'
+            ],
+            'conhecimentos_gerais': [
+                'Desafios do Estado de Direito',
+                'Políticas públicas',
+                'Ética e integridade',
+                'Diversidade e inclusão na sociedade',
+                'Administração pública federal',
+                'Trabalho e tecnologia'
+            ]
+        },
+        'Bloco 5 - Educação, Saúde, Desenvolvimento Social e Direitos Humanos': {
+            'conhecimentos_especificos': [
+                'Políticas de Saúde Pública',
+                'Educação em Saúde',
+                'Desenvolvimento Social e Comunitário',
+                'Direitos Humanos na Saúde',
+                'Promoção da Saúde e Prevenção de Doenças',
+                'Vigilância Epidemiológica',
+                'Saúde Coletiva',
+                'Atenção Primária à Saúde'
             ],
             'conhecimentos_gerais': [
                 'Desafios do Estado de Direito',
@@ -933,17 +993,37 @@ CONTEUDOS_EDITAL = {
     }
 }
 
-@questoes_bp.route('/gerar', methods=['POST'])
+@questoes_bp.route('/gerar', methods=['POST', 'OPTIONS'])
 def gerar_questao():
     """Gera uma nova questão personalizada para o usuário"""
+    # Tratar requisições OPTIONS para CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        return response
+    
     try:
         print("🔥 Requisição recebida na API de geração de questões")
-        data = request.get_json()
+        print(f"📋 Content-Type: {request.content_type}")
+        print(f"📋 Raw data: {request.get_data()}")
+        
+        # Tentar obter JSON com tratamento de erro específico
+        try:
+            data = request.get_json(force=True)
+        except Exception as json_error:
+            print(f"❌ Erro ao fazer parse do JSON: {json_error}")
+            return jsonify({"error": f"Invalid JSON: {str(json_error)}"}), 400
+            
         print(f"📋 Dados recebidos: {data}")
         
         usuario_id = data.get('usuario_id')
         cargo = data.get('cargo')
         bloco = data.get('bloco')
+        count = int(data.get('count', 1))  # Número de questões solicitadas
+        difficulty = data.get('difficulty', 'medio')
+        subject = data.get('subject', '')
         tipo_questao = data.get('tipo_questao', 'múltipla escolha')
         tipo_conhecimento = data.get('tipo_conhecimento', 'todos')  # todos, conhecimentos_gerais, conhecimentos_especificos
         modo_foco = data.get('modo_foco', False)
@@ -952,10 +1032,13 @@ def gerar_questao():
         print(f"👤 Usuario ID: {usuario_id}")
         print(f"💼 Cargo: {cargo}")
         print(f"📚 Bloco: {bloco}")
+        print(f"🔢 Quantidade: {count}")
+        print(f"📊 Dificuldade: {difficulty}")
+        print(f"📖 Matéria: {subject}")
         
         if not all([usuario_id, cargo, bloco]):
             print("❌ Dados obrigatórios faltando")
-            return jsonify({'erro': 'Dados do usuário são obrigatórios'}), 400
+            return jsonify({'error': 'User data is required'}), 400
         
         # Obter conteúdo específico do edital baseado no tipo de conhecimento
         if modo_foco and materia_foco:
@@ -969,83 +1052,103 @@ def gerar_questao():
             print("❌ Cargo ou bloco não encontrado")
             return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
         
-        # Gerar questão real usando ChatGPT
-        print("🤖 Gerando questão com ChatGPT...")
-        print(f"DEBUG: Parâmetros - cargo={cargo}, bloco={bloco}, tipo={tipo_questao}")
-        print(f"DEBUG: Conteúdo edital: {conteudo_edital}")
+        # Gerar múltiplas questões conforme solicitado
+        questoes_geradas = []
+        
         try:
-            print("DEBUG: Chamando chatgpt_service.gerar_questao...")
-            questao_ia = chatgpt_service.gerar_questao(
-                cargo=cargo,
-                conteudo_edital=conteudo_edital,
-                tipo_questao=tipo_questao
-            )
+            print(f"🤖 Gerando {count} questões com ChatGPT...")
+            conteudo_str = ', '.join(conteudo_edital[:3])  # Usar os primeiros 3 tópicos
             
-            print(f"DEBUG: Resposta do ChatGPT: {questao_ia}")
+            for i in range(count):
+                print(f"📝 Gerando questão {i+1}/{count}...")
+                
+                try:
+                    # Usar seed diferente para cada questão para garantir diversidade
+                    import time
+                    seed_questao = int(time.time() * 1000) + i  # Seed único baseado em timestamp + índice
+                    
+                    questao_ia = chatgpt_service.gerar_questao(
+                        cargo=cargo,
+                        conteudo_edital=conteudo_str,
+                        tipo_questao=tipo_questao,
+                        seed=seed_questao
+                    )
+                    
+                    if questao_ia and isinstance(questao_ia, dict):
+                        print(f"✅ Questão {i+1} gerada com sucesso: {questao_ia.get('questao', 'N/A')[:50]}...")
+                        
+                        # Converter formato para o frontend
+                        questao_frontend = {
+                            'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}-{i}',
+                            'question': questao_ia.get('questao', ''),
+                            'options': [alt.get('texto', alt) if isinstance(alt, dict) else alt for alt in questao_ia.get('alternativas', [])],
+                            'correctAnswer': ord(questao_ia.get('gabarito', 'A')) - ord('A'),
+                            'explanation': questao_ia.get('explicacao', ''),
+                            'difficulty': questao_ia.get('dificuldade', difficulty),
+                            'subject': subject or questao_ia.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral'),
+                            'topic': questao_ia.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral'),
+                            'source': 'ChatGPT'
+                        }
+                        questoes_geradas.append(questao_frontend)
+                    else:
+                        raise Exception("ChatGPT não retornou questão válida")
+                        
+                except Exception as e:
+                    print(f"❌ Erro ao gerar questão {i+1} com IA: {e}")
+                    # Adicionar questão fallback
+                    questao_fallback = {
+                        'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}-fallback-{i}',
+                        'question': f'Questão de exemplo {i+1} sobre {subject or "SUS"}',
+                        'options': [
+                            'Alternativa A',
+                            'Alternativa B',
+                            'Alternativa C',
+                            'Alternativa D'
+                        ],
+                        'correctAnswer': i % 4,
+                        'explanation': 'Explicação da resposta correta',
+                        'difficulty': difficulty,
+                        'subject': subject or 'SUS',
+                        'topic': subject or 'SUS',
+                        'source': 'Fallback'
+                    }
+                    questoes_geradas.append(questao_fallback)
             
-            if questao_ia:
-                questao_id = str(uuid.uuid4())
-                questao_completa = {
-                    'id': questao_id,
-                    'questao': questao_ia['questao'],
-                    'tipo': questao_ia.get('tipo', 'múltipla escolha'),
-                    'alternativas': [
-                        {'id': alt.split(')')[0], 'texto': alt.split(') ', 1)[1] if ') ' in alt else alt}
-                        for alt in questao_ia['alternativas']
-                    ],
-                    'gabarito': questao_ia['gabarito'],
-                    'tema': questao_ia.get('tema', conteudo_edital[0] if conteudo_edital else 'Tema geral'),
-                    'dificuldade': questao_ia.get('dificuldade', 'medio'),
-                    'explicacao': questao_ia.get('explicacao', '')
-                }
-                print(f"✅ Questão IA gerada: {questao_completa['questao'][:100]}...")
-                print(f"DEBUG: Questão completa estruturada: {questao_completa}")
+            if questoes_geradas:
+                print(f"✅ Total de {len(questoes_geradas)} questões geradas com sucesso!")
+                return jsonify(questoes_geradas)
             else:
-                print("DEBUG: ChatGPT retornou None ou vazio")
-                raise Exception("ChatGPT não retornou questão válida")
+                raise Exception("Nenhuma questão foi gerada")
                 
         except Exception as e:
-            print(f"❌ Erro ao gerar questão com IA: {e}")
-            print(f"DEBUG: Traceback completo:")
+            print(f"❌ Erro geral ao gerar questões: {str(e)}")
             import traceback
             traceback.print_exc()
-            print("🔄 Usando questão de fallback...")
             
-            # Fallback: questão de exemplo
-            questao_id = str(uuid.uuid4())
-            questao_completa = {
-                'id': questao_id,
-                'questao': f"Questão sobre {conteudo_edital[0] if conteudo_edital else 'conhecimentos gerais'} para {cargo}",
-                'tipo': 'múltipla escolha',
-                'alternativas': [
-                    {'id': 'A', 'texto': 'Alternativa A - Exemplo'},
-                    {'id': 'B', 'texto': 'Alternativa B - Exemplo'},
-                    {'id': 'C', 'texto': 'Alternativa C - Exemplo'},
-                    {'id': 'D', 'texto': 'Alternativa D - Exemplo'}
-                ],
-                'gabarito': 'A',
-                'tema': conteudo_edital[0] if conteudo_edital else 'Tema geral',
-                'dificuldade': 'medio',
-                'explicacao': 'Esta é uma questão de exemplo para teste do sistema.'
-            }
-        
-        # Armazenar questão completa em cache/sessão para validação posterior
-        # TODO: Implementar cache Redis ou sessão para armazenar gabarito
-        
-        # Retornar questão sem gabarito para o frontend
-        questao_frontend = {
-            'id': questao_id,
-            'questao': questao_completa['questao'],
-            'tipo': questao_completa['tipo'],
-            'alternativas': questao_completa['alternativas'],
-            'tema': questao_completa['tema'],
-            'dificuldade': questao_completa['dificuldade']
-        }
-        
-        return jsonify({
-            'sucesso': True,
-            'questao': questao_frontend
-        })
+            # Fallback - gerar múltiplas questões de exemplo
+            questoes_exemplo = []
+            
+            for i in range(count):
+                questao_exemplo = {
+                    'id': f'q-exemplo-{datetime.now().strftime("%Y%m%d%H%M%S")}-{i}',
+                    'question': f'Questão de exemplo {i+1}: Qual é um dos princípios fundamentais do Sistema Único de Saúde (SUS)?',
+                    'options': [
+                        'Atendimento apenas para emergências',
+                        'Universalidade, integralidade e equidade',
+                        'Atendimento exclusivo para planos de saúde',
+                        'Foco apenas em tratamentos especializados'
+                    ],
+                    'correctAnswer': 1,
+                    'explanation': 'O SUS é baseado nos princípios da universalidade (acesso para todos), integralidade (atenção completa) e equidade (tratamento justo conforme necessidades).',
+                    'difficulty': difficulty,
+                    'subject': subject or 'SUS',
+                    'topic': 'Princípios do SUS',
+                    'source': 'Exemplo'
+                }
+                questoes_exemplo.append(questao_exemplo)
+            
+            print(f"🔄 Retornando {len(questoes_exemplo)} questões de exemplo como fallback")
+            return jsonify(questoes_exemplo)
         
     except Exception as e:
         print(f"❌ Erro ao gerar questão: {e}")
@@ -1193,9 +1296,19 @@ def obter_estatisticas(usuario_id):
 def obter_materias_por_cargo_bloco(cargo, bloco):
     """Obtém as matérias específicas baseadas no cargo e bloco do usuário"""
     try:
-        # Buscar no dicionário CONTEUDOS_EDITAL
-        bloco_normalizado = bloco.replace('_', ' ').title()
-        conteudos = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco_normalizado, [])
+        # Debug: imprimir parâmetros recebidos
+        # Normalizar o bloco (usar o valor exato recebido)
+        bloco_normalizado = bloco
+        
+        cargo_data = CONTEUDOS_EDITAL.get(cargo, {})
+        conteudos = cargo_data.get(bloco_normalizado, [])
+        
+        # Fallback: busca case-insensitive se não encontrar match exato
+        if not conteudos:
+            for chave, valor in cargo_data.items():
+                if chave.lower() == bloco_normalizado.lower():
+                    conteudos = valor
+                    break
         
         materias_performance = []
         
@@ -1383,7 +1496,7 @@ def obter_estatisticas_gerais(usuario_id):
     """
     try:
         # Buscar dados do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             from firebase_admin import firestore
             db = firestore.client()
             
@@ -1496,7 +1609,7 @@ def obter_desempenho_semanal(usuario_id):
     """
     try:
         # Buscar dados do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             from firebase_admin import firestore
             from datetime import datetime, timedelta
             import random
@@ -1568,7 +1681,7 @@ def obter_evolucao_mensal(usuario_id):
     """
     try:
         # Buscar dados do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             from firebase_admin import firestore
             from datetime import datetime, timedelta
             import random
@@ -1630,7 +1743,7 @@ def obter_metas_usuario(usuario_id):
     """
     try:
         # Buscar dados do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             from firebase_admin import firestore
             
             db = firestore.client()
@@ -1746,7 +1859,7 @@ def obter_atividades_recentes(usuario_id):
     """
     try:
         # Buscar dados do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             from firebase_admin import firestore
             from datetime import datetime, timedelta
             import random
@@ -1873,7 +1986,7 @@ def obter_notificacoes(usuario_id):
     """
     try:
         # Buscar dados do usuário no Firebase/Firestore
-        if firebase_config.is_configured():
+        if firebase_config.is_connected():
             from firebase_admin import firestore
             from datetime import datetime, timedelta
             import random

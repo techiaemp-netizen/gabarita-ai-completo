@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from datetime import datetime
 from src.routes.questoes import CONTEUDOS_EDITAL
 
 opcoes_bp = Blueprint('opcoes', __name__)
@@ -19,8 +20,8 @@ def get_cargos_blocos():
             todos_blocos.update(blocos)
         
         return jsonify({
-            'sucesso': True,
-            'dados': {
+            'success': True,
+            'data': {
                 'cargos_blocos': opcoes,
                 'todos_cargos': list(opcoes.keys()),
                 'todos_blocos': sorted(list(todos_blocos))
@@ -28,10 +29,74 @@ def get_cargos_blocos():
         }), 200
         
     except Exception as e:
-        print(f"Erro ao obter opções: {str(e)}")
+        print(f"Error getting options: {str(e)}")
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@opcoes_bp.route('/opcoes/diagnostico', methods=['GET'])
+def diagnostico_opcoes():
+    """Endpoint de diagnóstico para verificar o status das opções"""
+    try:
+        # Verificar se CONTEUDOS_EDITAL está carregado
+        if not CONTEUDOS_EDITAL:
+            return jsonify({
+                'success': False,
+                'error': 'CONTEUDOS_EDITAL not loaded',
+                'diagnostico': {
+                    'conteudos_carregados': False,
+                    'total_cargos': 0,
+                    'total_blocos': 0
+                }
+            }), 500
+        
+        # Contar cargos e blocos
+        total_cargos = len(CONTEUDOS_EDITAL)
+        todos_blocos = set()
+        
+        for cargo, blocos_data in CONTEUDOS_EDITAL.items():
+            if isinstance(blocos_data, dict):
+                todos_blocos.update(blocos_data.keys())
+        
+        total_blocos = len(todos_blocos)
+        
+        # Testar endpoints principais
+        try:
+            # Simular chamada para blocos-cargos
+            blocos_cargos = {}
+            for cargo, blocos_data in CONTEUDOS_EDITAL.items():
+                if isinstance(blocos_data, dict):
+                    for bloco in blocos_data.keys():
+                        if bloco not in blocos_cargos:
+                            blocos_cargos[bloco] = []
+                        blocos_cargos[bloco].append(cargo)
+            
+            endpoint_blocos_cargos_ok = True
+        except Exception as e:
+            endpoint_blocos_cargos_ok = False
+        
+        return jsonify({
+            'success': True,
+            'diagnostico': {
+                'conteudos_carregados': True,
+                'total_cargos': total_cargos,
+                'total_blocos': total_blocos,
+                'endpoint_blocos_cargos_ok': endpoint_blocos_cargos_ok,
+                'primeiros_cargos': list(CONTEUDOS_EDITAL.keys())[:5],
+                'primeiros_blocos': sorted(list(todos_blocos))[:5],
+                'timestamp': str(datetime.now())
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Diagnostic error: {str(e)}',
+            'diagnostico': {
+                'conteudos_carregados': False,
+                'erro_detalhado': str(e)
+            }
         }), 500
 
 @opcoes_bp.route('/opcoes/blocos-cargos', methods=['GET'])
@@ -64,21 +129,22 @@ def get_blocos_cargos():
         print(f"Debug: Cargos: {todos_cargos[:3]}...")   # Primeiros 3 cargos
         
         return jsonify({
-            'sucesso': True,
-            'dados': {
-                'blocos_cargos': blocos_cargos,
+            'success': True,
+            'data': {
+                'cargos_blocos': blocos_cargos,  # Frontend espera cargos_blocos
+                'blocos_cargos': blocos_cargos,  # Manter compatibilidade
                 'todos_blocos': sorted(todos_blocos),
                 'todos_cargos': sorted(todos_cargos)
             }
         }), 200
         
     except Exception as e:
-        print(f"Erro ao obter opções blocos-cargos: {str(e)}")
+        print(f"Error getting blocks-positions options: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Internal server error'
         }), 500
 
 @opcoes_bp.route('/opcoes/cargos/<bloco>', methods=['GET'])
@@ -92,23 +158,23 @@ def get_cargos_por_bloco(bloco):
         
         if not cargos:
             return jsonify({
-                'sucesso': False,
-                'erro': 'Bloco não encontrado'
+                'success': False,
+                'error': 'Block not found'
             }), 404
-        
+
         return jsonify({
-            'sucesso': True,
-            'dados': {
+            'success': True,
+            'data': {
                 'bloco': bloco,
                 'cargos': cargos
             }
         }), 200
         
     except Exception as e:
-        print(f"Erro ao obter cargos para bloco {bloco}: {str(e)}")
+        print(f"Error getting positions for block {bloco}: {str(e)}")
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Internal server error'
         }), 500
 
 @opcoes_bp.route('/opcoes/blocos/<cargo>', methods=['GET'])
@@ -119,21 +185,21 @@ def get_blocos_por_cargo(cargo):
         
         if not blocos:
             return jsonify({
-                'sucesso': False,
-                'erro': 'Cargo não encontrado'
+                'success': False,
+                'error': 'Position not found'
             }), 404
-        
+
         return jsonify({
-            'sucesso': True,
-            'dados': {
+            'success': True,
+            'data': {
                 'cargo': cargo,
                 'blocos': blocos
             }
         }), 200
         
     except Exception as e:
-        print(f"Erro ao obter blocos para cargo {cargo}: {str(e)}")
+        print(f"Error getting blocks for position {cargo}: {str(e)}")
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Internal server error'
         }), 500

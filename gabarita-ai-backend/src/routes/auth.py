@@ -4,8 +4,11 @@ Rotas de autenticação para o Gabarita.AI
 from flask import Blueprint, request, jsonify
 from firebase_admin import auth, firestore
 from src.config.firebase_config import firebase_config
+from src.utils.jwt_utils import jwt_manager, token_required, get_current_user
+from datetime import datetime, timedelta
 import uuid
-from datetime import datetime
+import jwt
+import os
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -15,10 +18,11 @@ def login():
     try:
         data = request.get_json()
         email = data.get('email')
-        senha = data.get('senha')
+        # Aceitar tanto 'senha' quanto 'password' para compatibilidade
+        senha = data.get('senha') or data.get('password')
         
         if not email or not senha:
-            return jsonify({'erro': 'E-mail e senha são obrigatórios'}), 400
+            return jsonify({'success': False, 'error': 'Email and password are required'}), 400
         
         # Para desenvolvimento, simular autenticação
         # Em produção, usar Firebase Auth
@@ -29,22 +33,37 @@ def login():
                 usuario_data = _get_usuario_firestore(user.uid)
                 
                 if usuario_data:
+                    # Gerar token JWT real
+                    # Gerar token JWT real
+                    token = jwt_manager.generate_token({
+                        'id': user.uid,
+                        'email': email,
+                        'nome': usuario_data.get('nome', ''),
+                        'cargo': usuario_data.get('cargo', ''),
+                        'bloco': usuario_data.get('bloco', '')
+                    })
+                    
+                    if not token:
+                        return jsonify({'success': False, 'error': 'Erro ao gerar token de autenticação'}), 500
+                    
                     return jsonify({
-                        'sucesso': True,
-                        'usuario': usuario_data,
-                        'token': user.uid  # Em produção, usar token JWT
+                        'success': True,
+                        'data': {
+                            'user': usuario_data,
+                            'token': token
+                        }
                     })
                 else:
-                    return jsonify({'erro': 'Usuário não encontrado'}), 404
+                    return jsonify({'success': False, 'error': 'Usuário não encontrado'}), 404
                     
             except auth.UserNotFoundError:
-                return jsonify({'erro': 'Credenciais inválidas'}), 401
+                return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
             except Exception as e:
                 print(f"Erro na autenticação Firebase: {e}")
                 # Fallback para autenticação simulada
                 pass
         
-        # Autenticação simulada para desenvolvimento
+        # Fallback: autenticação simulada para desenvolvimento
         usuario_simulado = {
             'id': str(uuid.uuid4()),
             'nome': 'Usuário Teste',
@@ -59,15 +78,29 @@ def login():
             'ultimo_acesso': datetime.now().isoformat()
         }
         
+        # Gerar token JWT para usuário simulado
+        token = jwt_manager.generate_token({
+            'id': usuario_simulado['id'],
+            'email': email,
+            'nome': usuario_simulado['nome'],
+            'cargo': usuario_simulado['cargo'],
+            'bloco': usuario_simulado['bloco']
+        })
+        
+        if not token:
+            return jsonify({'success': False, 'error': 'Erro ao gerar token de autenticação'}), 500
+
         return jsonify({
-            'sucesso': True,
-            'usuario': usuario_simulado,
-            'token': usuario_simulado['id']
+            'success': True,
+            'data': {
+                'user': usuario_simulado,
+                'token': token
+            }
         })
         
     except Exception as e:
         print(f"Erro no login: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({'success': False, 'error': 'Erro interno do servidor'}), 500
 
 @auth_bp.route('/cadastro', methods=['POST'])
 def cadastro():
@@ -76,21 +109,20 @@ def cadastro():
         data = request.get_json()
         
         # Validar dados obrigatórios
-        campos_obrigatorios = ['nome', 'email', 'senha', 'cargo', 'bloco']
-        for campo in campos_obrigatorios:
-            if not data.get(campo):
-                return jsonify({'erro': f'Campo {campo} é obrigatório'}), 400
-        
-        # Validar confirmação de senha
-        confirmar_senha = data.get('confirmarSenha')
-        if confirmar_senha and data.get('senha') != confirmar_senha:
-            return jsonify({'erro': 'Senhas não coincidem'}), 400
-        
+        nome = data.get('nome') or data.get('name')  # Aceitar ambos os formatos
         email = data.get('email')
-        senha = data.get('senha')
-        nome = data.get('nome')
+        senha = data.get('senha') or data.get('password')  # Aceitar ambos os formatos
         cargo = data.get('cargo')
         bloco = data.get('bloco')
+        
+        if not nome or not email or not senha or not cargo or not bloco:
+            return jsonify({'success': False, 'error': 'All fields are required'}), 400
+        
+        # Validar confirmação de senha
+        confirmar_senha = data.get('confirmarSenha') or data.get('confirmPassword')
+        if confirmar_senha and senha != confirmar_senha:
+            return jsonify({'success': False, 'error': 'Passwords do not match'}), 400
+        
         nivel_escolaridade = data.get('nivel_escolaridade', 'Superior')
         
         # Verificar se e-mail já existe
@@ -123,14 +155,28 @@ def cadastro():
                 db = firebase_config.get_db()
                 db.collection('usuarios').document(user.uid).set(usuario_data)
                 
+                # Gerar token JWT real
+                token = jwt_manager.generate_token({
+                    'id': user.uid,
+                    'email': email,
+                    'nome': nome,
+                    'cargo': cargo,
+                    'bloco': bloco
+                })
+                
+                if not token:
+                    return jsonify({'success': False, 'error': 'Erro ao gerar token de autenticação'}), 500
+                
                 return jsonify({
-                    'sucesso': True,
-                    'usuario': usuario_data,
-                    'token': user.uid
+                    'success': True,
+                    'data': {
+                        'user': usuario_data,
+                        'token': token
+                    }
                 })
                 
             except auth.EmailAlreadyExistsError:
-                return jsonify({'erro': 'E-mail já cadastrado'}), 409
+                return jsonify({'success': False, 'error': 'E-mail já cadastrado'}), 409
             except Exception as e:
                 print(f"Erro no cadastro Firebase: {e}")
                 # Fallback para cadastro simulado
@@ -153,68 +199,62 @@ def cadastro():
             'ultimo_acesso': datetime.now().isoformat()
         }
         
+        # Gerar token JWT para usuário simulado
+        token = jwt_manager.generate_token({
+            'id': usuario_id,
+            'email': email,
+            'nome': nome,
+            'cargo': cargo,
+            'bloco': bloco
+        })
+        
+        if not token:
+            return jsonify({'success': False, 'error': 'Erro ao gerar token de autenticação'}), 500
+        
         return jsonify({
-            'sucesso': True,
-            'usuario': usuario_data,
-            'token': usuario_id
+            'success': True,
+            'data': {
+                'user': usuario_data,
+                'token': token
+            }
         })
         
     except Exception as e:
         print(f"Erro no cadastro: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({'success': False, 'error': 'Erro interno do servidor'}), 500
 
 @auth_bp.route('/verificar-token', methods=['POST'])
+@token_required
 def verificar_token():
     """Endpoint para verificar validade do token"""
     try:
-        data = request.get_json()
-        token = data.get('token')
+        # Token já foi validado pelo decorator @token_required
+        current_user = get_current_user()
         
-        if not token:
-            return jsonify({'erro': 'Token é obrigatório'}), 400
+        if not current_user:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
         
+        # Buscar dados completos do usuário
         if firebase_config.is_connected():
             try:
-                # Verificar token com Firebase Auth
-                decoded_token = auth.verify_id_token(token)
-                uid = decoded_token['uid']
-                
-                # Buscar dados do usuário
-                usuario_data = _get_usuario_firestore(uid)
+                usuario_data = _get_usuario_firestore(current_user['id'])
                 
                 if usuario_data:
                     # Atualizar último acesso
-                    _atualizar_ultimo_acesso(uid)
+                    _atualizar_ultimo_acesso(current_user['id'])
                     
                     return jsonify({
                         'sucesso': True,
                         'usuario': usuario_data
                     })
-                else:
-                    return jsonify({'erro': 'Usuário não encontrado'}), 404
                     
-            except auth.InvalidIdTokenError:
-                return jsonify({'erro': 'Token inválido'}), 401
             except Exception as e:
-                print(f"Erro na verificação do token: {e}")
-                # Fallback para verificação simulada
-                pass
+                print(f"Erro ao buscar dados do usuário: {e}")
         
-        # Verificação simulada para desenvolvimento
-        # Em desenvolvimento, qualquer token é válido
-        usuario_simulado = {
-            'id': token,
-            'nome': 'Usuário Teste',
-            'email': 'teste@gabarita.ai',
-            'cargo': 'Enfermeiro na Atenção Primária',
-            'bloco': 'Bloco 5',
-            'vida': 85,
-            'pontuacao': 1250
-        }
-        
+        # Retornar dados do token se não conseguir buscar no Firebase
         return jsonify({
             'sucesso': True,
-            'usuario': usuario_simulado
+            'usuario': current_user
         })
         
     except Exception as e:
@@ -229,7 +269,7 @@ def google_auth():
         id_token = data.get('idToken')
         
         if not id_token:
-            return jsonify({'erro': 'Token do Google é obrigatório'}), 400
+            return jsonify({'error': 'Google token is required'}), 400
         
         if firebase_config.is_connected():
             try:
@@ -277,10 +317,10 @@ def google_auth():
                     })
                     
             except auth.InvalidIdTokenError:
-                return jsonify({'erro': 'Token do Google inválido'}), 401
+                return jsonify({'error': 'Invalid Google token'}), 401
             except Exception as e:
                 print(f"Erro na autenticação Google: {e}")
-                return jsonify({'erro': 'Erro na autenticação com Google'}), 500
+                return jsonify({'error': 'Google authentication error'}), 500
         else:
             # Modo desenvolvimento - simular autenticação Google
             usuario_simulado = {
@@ -306,25 +346,58 @@ def google_auth():
         print(f"Erro no Google Auth: {e}")
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
+@auth_bp.route('/refresh-token', methods=['POST'])
+@token_required
+def refresh_token():
+    """Endpoint para renovar token JWT"""
+    try:
+        current_user = get_current_user()
+        
+        # Gerar novo token com os dados atuais do usuário
+        user_data = {
+            'id': current_user.get('user_id'),
+            'email': current_user.get('email'),
+            'nome': current_user.get('nome'),
+            'cargo': current_user.get('cargo'),
+            'bloco': current_user.get('bloco')
+        }
+        
+        new_token = jwt_manager.generate_token(user_data)
+        if not new_token:
+            return jsonify({
+                'success': False,
+                'error': 'Erro ao renovar token'
+            }), 500
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'token': new_token,
+                'user': user_data
+            }
+        })
+        
+    except Exception as e:
+        logging.error(f"Erro ao renovar token: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+
 @auth_bp.route('/complete-profile', methods=['POST'])
+@token_required
 def complete_profile():
     """Endpoint para completar perfil de usuários Google"""
     try:
         data = request.get_json()
         nickname = data.get('nickname')
-        
-        # Obter token do header Authorization
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
-            
-        token = auth_header.split(' ')[1]
+        current_user = get_current_user()
         
         if not nickname:
-            return jsonify({'erro': 'Nickname é obrigatório'}), 400
+            return jsonify({'error': 'Nickname is required'}), 400
             
         if len(nickname) < 3 or len(nickname) > 20:
-            return jsonify({'erro': 'Nickname deve ter entre 3 e 20 caracteres'}), 400
+            return jsonify({'error': 'Nickname must be between 3 and 20 characters'}), 400
         
         if firebase_config.is_connected():
             try:
@@ -350,10 +423,10 @@ def complete_profile():
                 })
                 
             except auth.InvalidIdTokenError:
-                return jsonify({'erro': 'Token inválido'}), 401
+                return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
                 print(f"Erro ao completar perfil: {e}")
-                return jsonify({'erro': 'Erro ao atualizar perfil'}), 500
+                return jsonify({'error': 'Error updating profile'}), 500
         else:
             # Modo desenvolvimento
             usuario_simulado = {

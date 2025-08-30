@@ -43,6 +43,66 @@ Retorne a resposta no seguinte formato JSON:
   "dificuldade": "facil|medio|dificil"
 }"""
     
+    def _get_prompt_estatico_variado(self, seed: int = None) -> str:
+        """Retorna variações do prompt estático para diversificar questões"""
+        import random
+        if seed is not None:
+            random.seed(seed)
+        
+        variacoes_estilo = [
+            "Crie uma questão desafiadora e inovadora",
+            "Elabore uma questão que teste conhecimento prático", 
+            "Desenvolva uma questão com foco em aplicação teórica",
+            "Formule uma questão que explore conceitos fundamentais",
+            "Construa uma questão com abordagem analítica"
+        ]
+        
+        variacoes_contexto = [
+            "considerando situações do dia a dia profissional",
+            "baseando-se em casos práticos reais",
+            "focando em aspectos normativos e legais",
+            "explorando diferentes cenários de aplicação",
+            "integrando conhecimentos multidisciplinares"
+        ]
+        
+        estilo = random.choice(variacoes_estilo)
+        contexto = random.choice(variacoes_contexto)
+        
+        return f"""Você é um elaborador de questões da banca FGV. {estilo} {contexto}, com base no edital do cargo abaixo. Siga as instruções com rigor:
+
+- Formato da questão: pode ser de múltipla escolha (com 5 alternativas, apenas uma correta), verdadeiro ou falso, completar lacuna, ou ordenação lógica.
+- A questão deve ser inédita, clara, com linguagem técnica adequada.
+- A alternativa correta deve ser coerente e as erradas plausíveis, mas incorretas.
+- No final, inclua o gabarito e uma explicação técnica da resposta.
+- NÃO invente temas fora do edital. Utilize apenas o conteúdo que está listado no edital fornecido.
+
+Retorne a resposta no seguinte formato JSON:
+{{
+  "questao": "texto da questão",
+  "tipo": "multipla_escolha|verdadeiro_falso|completar_lacuna|ordenacao",
+  "alternativas": ["A) ...", "B) ...", "C) ...", "D) ...", "E) ..."],
+  "gabarito": "A",
+  "explicacao": "explicação detalhada da resposta correta",
+  "tema": "tema principal da questão",
+  "dificuldade": "facil|medio|dificil"
+}}"""
+    
+    def _get_system_prompt_variado(self, seed: int = None) -> str:
+        """Retorna variações do system prompt para diversificar o comportamento"""
+        import random
+        if seed is not None:
+            random.seed(seed)
+        
+        variacoes_personalidade = [
+            "Você é um especialista em elaboração de questões para concursos públicos da banca FGV.",
+            "Você é um professor experiente que cria questões desafiadoras para concursos da FGV.",
+            "Você é um elaborador criativo de questões objetivas para a banca FGV.",
+            "Você é um especialista em avaliação educacional da banca FGV.",
+            "Você é um consultor em elaboração de questões técnicas para a FGV."
+        ]
+        
+        return random.choice(variacoes_personalidade)
+    
     def _get_prompt_dinamico(self, cargo: str, conteudo_edital: str, tipo_questao: str = "múltipla escolha") -> str:
         """Gera o prompt dinâmico baseado no perfil do usuário"""
         return f"""
@@ -51,7 +111,7 @@ Conteúdo do edital a ser cobrado: {conteudo_edital}
 Tipo de questão desejada: {tipo_questao}
 """
     
-    def gerar_questao(self, cargo: str, conteudo_edital: str, tipo_questao: str = "múltipla escolha") -> Optional[Dict[str, Any]]:
+    def gerar_questao(self, cargo: str, conteudo_edital: str, tipo_questao: str = "múltipla escolha", seed: int = None) -> Optional[Dict[str, Any]]:
         """
         Gera uma questão personalizada usando ChatGPT
         
@@ -59,22 +119,31 @@ Tipo de questão desejada: {tipo_questao}
             cargo: Cargo pretendido pelo usuário
             conteudo_edital: Conteúdo específico do edital
             tipo_questao: Tipo de questão desejada
+            seed: Seed para diversificação (opcional)
             
         Returns:
             Dict com a questão gerada ou None em caso de erro
         """
         try:
-            # Combinar prompts estático e dinâmico
-            prompt_completo = self._get_prompt_estatico() + self._get_prompt_dinamico(cargo, conteudo_edital, tipo_questao)
+            # Adicionar variação na temperatura e prompt para diversificar
+            import random
+            if seed is not None:
+                random.seed(seed)
+            
+            # Variar temperatura entre 0.6 e 0.9 para mais diversidade
+            temperatura_variada = random.uniform(0.6, 0.9)
+            
+            # Combinar prompts estático e dinâmico com variações
+            prompt_completo = self._get_prompt_estatico_variado(seed) + self._get_prompt_dinamico(cargo, conteudo_edital, tipo_questao)
             
             # Fazer chamada para ChatGPT
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",  # Modelo disponível
                 messages=[
-                    {"role": "system", "content": "Você é um especialista em elaboração de questões para concursos públicos da banca FGV."},
+                    {"role": "system", "content": self._get_system_prompt_variado(seed)},
                     {"role": "user", "content": prompt_completo}
                 ],
-                temperature=self.temperature,
+                temperature=temperatura_variada,
                 max_tokens=self.max_tokens
             )
             

@@ -58,7 +58,7 @@ MOCK_NEWS = [
     }
 ]
 
-@news_bp.route('/news', methods=['GET'])
+@news_bp.route('/noticias', methods=['GET'])
 def get_news():
     """Retorna lista de notícias"""
     try:
@@ -86,7 +86,7 @@ def get_news():
             'error': f'Erro ao buscar notícias: {str(e)}'
         }), 500
 
-@news_bp.route('/news/<news_id>', methods=['GET'])
+@news_bp.route('/noticias/<news_id>', methods=['GET'])
 def get_news_by_id(news_id):
     """Retorna uma notícia específica pelo ID"""
     try:
@@ -109,7 +109,7 @@ def get_news_by_id(news_id):
             'error': f'Erro ao buscar notícia: {str(e)}'
         }), 500
 
-@news_bp.route('/news/categories', methods=['GET'])
+@news_bp.route('/noticias/categorias', methods=['GET'])
 def get_news_categories():
     """Retorna lista de categorias disponíveis"""
     try:
