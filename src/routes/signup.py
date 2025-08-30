@@ -28,39 +28,59 @@ def signup():
     try:
         data = request.get_json()
         
-        # Validar dados obrigatorios
-        required_fields = ['nomeCompleto', 'cpf', 'email', 'senha']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {field} e obrigatorio'
-                }), 400
+        # Validar dados obrigatorios - aceitar campos em português e inglês
+        nome_completo = data.get('nomeCompleto') or data.get('name')
+        cpf = data.get('cpf')
+        email = data.get('email')
+        senha = data.get('senha') or data.get('password')
         
-        nome_completo = data['nomeCompleto'].strip()
-        cpf = data['cpf'].strip()
-        email = data['email'].strip().lower()
-        senha = data['senha']
+        if not nome_completo:
+            return jsonify({
+                'success': False,
+                'error': 'Name field is required'
+            }), 400
+            
+        if not cpf:
+            return jsonify({
+                'success': False,
+                'error': 'Campo CPF é obrigatório'
+            }), 400
+            
+        if not email:
+            return jsonify({
+                'success': False,
+                'error': 'Campo email é obrigatório'
+            }), 400
+            
+        if not senha:
+            return jsonify({
+                'success': False,
+                'error': 'Campo senha é obrigatório'
+            }), 400
+        
+        nome_completo = nome_completo.strip()
+        cpf = cpf.strip()
+        email = email.strip().lower()
         
         # Validacoes
         if not validate_email(email):
             return jsonify({
-                'sucesso': False,
-                'erro': 'Email invalido'
+                'success': False,
+                'error': 'Email inválido'
             }), 400
         
         # Validar CPF (implementação básica)
         if not cpf or len(cpf.replace('.', '').replace('-', '')) != 11:
             return jsonify({
-                'sucesso': False,
-                'erro': 'CPF invalido'
+                'success': False,
+                'error': 'CPF inválido'
             }), 400
         
         is_valid_password, password_error = validate_password(senha)
         if not is_valid_password:
             return jsonify({
-                'sucesso': False,
-                'erro': password_error
+                'success': False,
+                'error': password_error
             }), 400
         
         # Verificar se email ja existe
@@ -74,8 +94,8 @@ def signup():
             
             if existing_user:
                 return jsonify({
-                    'sucesso': False,
-                    'erro': 'Email ja cadastrado'
+                    'success': False,
+                    'error': 'Email já cadastrado'
                 }), 409
             
             # Verificar se CPF ja existe
@@ -83,8 +103,8 @@ def signup():
         
         if existing_cpf:
             return jsonify({
-                'sucesso': False,
-                'erro': 'CPF ja cadastrado'
+                'success': False,
+                'error': 'CPF já cadastrado'
             }), 409
         
         # Gerar hash da senha
@@ -114,16 +134,18 @@ def signup():
             user_id = str(uuid.uuid4())
         
         return jsonify({
-            'sucesso': True,
-            'mensagem': 'Usuario cadastrado com sucesso',
-            'userId': user_id
+            'success': True,
+            'message': 'Usuário cadastrado com sucesso',
+            'data': {
+                'userId': user_id
+            }
         }), 201
         
     except Exception as e:
         print(f"Erro no cadastro: {str(e)}")
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @signup_bp.route('/login', methods=['POST'])
@@ -133,12 +155,12 @@ def login():
         data = request.get_json()
         
         email = data.get('email', '').strip().lower()
-        senha = data.get('senha', '')
+        senha = data.get('senha') or data.get('password', '')
         
         if not email or not senha:
             return jsonify({
-                'sucesso': False,
-                'erro': 'Email e senha sao obrigatorios'
+                'success': False,
+                'error': 'Email e senha são obrigatórios'
             }), 400
         
         # Buscar usuario por email
@@ -157,9 +179,11 @@ def login():
                 'id': 'dev-user-123'
             }
             return jsonify({
-                'sucesso': True,
-                'mensagem': 'Login realizado com sucesso (modo desenvolvimento)',
-                'usuario': user_data
+                'success': True,
+                'message': 'Login realizado com sucesso (modo desenvolvimento)',
+                'data': {
+                    'user': user_data
+                }
             }), 200
         else:
             users_ref = db.collection('users')
@@ -167,8 +191,8 @@ def login():
             
             if not user_query:
                 return jsonify({
-                    'sucesso': False,
-                    'erro': 'Usuario nao encontrado'
+                    'success': False,
+                    'error': 'Usuário não encontrado'
                 }), 404
             
             user_doc = user_query[0]
@@ -177,8 +201,8 @@ def login():
         # Verificar senha
         if not check_password_hash(user_data.get('password_hash', ''), senha):
             return jsonify({
-                'sucesso': False,
-                'erro': 'Senha incorreta'
+                'success': False,
+                'error': 'Senha incorreta'
             }), 401
         
         # Remover hash da senha dos dados retornados
@@ -186,14 +210,16 @@ def login():
         user_data['id'] = user_doc.id
         
         return jsonify({
-            'sucesso': True,
-            'mensagem': 'Login realizado com sucesso',
-            'usuario': user_data
+            'success': True,
+            'message': 'Login realizado com sucesso',
+            'data': {
+                'user': user_data
+            }
         }), 200
         
     except Exception as e:
         print(f"Erro no login: {str(e)}")
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500

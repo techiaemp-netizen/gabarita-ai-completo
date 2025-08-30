@@ -2,19 +2,27 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente do arquivo .env
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 from services.chatgpt_service import chatgpt_service
 from routes.questoes import CONTEUDOS_EDITAL
-from routes.signup import signup_bp
+from routes.auth import auth_bp
 from routes.questoes import questoes_bp
 from routes.payments import payments_bp
+from routes.opcoes import opcoes_bp
+from routes.planos import planos_bp
 
 app = Flask(__name__)
 CORS(app)
 
 # Registrar blueprints
-app.register_blueprint(signup_bp, url_prefix='/api/auth')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(payments_bp)
+app.register_blueprint(opcoes_bp, url_prefix='/api/opcoes')
+app.register_blueprint(planos_bp, url_prefix='/api')
 
 @app.route('/', methods=['GET'])
 def home():
@@ -55,85 +63,7 @@ def login():
         'token': 'demo_token_123'
     })
 
-@app.route('/api/questoes/gerar', methods=['POST'])
-def gerar_questao_endpoint():
-    import sys
-    print("🔥 Requisição recebida na API de geração de questões")
-    sys.stdout.flush()
-    data = request.get_json()
-    print(f"📋 Dados recebidos: {data}")
-    sys.stdout.flush()
-    
-    usuario_id = data.get('usuario_id', 'user-default')
-    cargo = data.get('cargo', 'Enfermeiro')
-    bloco = data.get('bloco', 'Saúde')
-    
-    print(f"👤 Usuario ID: {usuario_id}")
-    print(f"💼 Cargo: {cargo}")
-    print(f"📚 Bloco: {bloco}")
-    sys.stdout.flush()
-    
-    # Obter conteúdo específico do edital
-    conteudo_edital = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco, [])
-    print(f"📖 Conteúdo do edital: {conteudo_edital}")
-    sys.stdout.flush()
-    
-    if not conteudo_edital:
-        print("❌ Cargo ou bloco não encontrado")
-        return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
-    
-    # Usar a função real de geração de questões
-    try:
-        print("🤖 Gerando questão com ChatGPT...")
-        sys.stdout.flush()
-        conteudo_str = ', '.join(conteudo_edital[:3])  # Usar os primeiros 3 tópicos
-        questao_gerada = chatgpt_service.gerar_questao(cargo, conteudo_str)
-        
-        if questao_gerada:
-            print(f"✅ Questão gerada com sucesso: {questao_gerada.get('questao', 'N/A')[:50]}...")
-            # Converter formato para o frontend
-            questao_frontend = {
-                'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-                'enunciado': questao_gerada.get('questao', ''),
-                'alternativas': [{'id': alt['id'], 'texto': alt['texto']} for alt in questao_gerada.get('alternativas', [])],
-                'gabarito': questao_gerada.get('gabarito', 'A'),
-                'explicacao': questao_gerada.get('explicacao', ''),
-                'dificuldade': questao_gerada.get('dificuldade', 'medio'),
-                'tema': questao_gerada.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral')
-            }
-            return jsonify({'questao': questao_frontend})
-        else:
-            print("❌ ChatGPT retornou None")
-            raise Exception("ChatGPT não retornou questão válida")
-            
-    except Exception as e:
-        print(f"❌ Erro ao gerar questão: {e}")
-        sys.stdout.flush()
-        import traceback
-        traceback.print_exc()
-        sys.stdout.flush()
-        # Fallback
-        questao_personalizada = {
-            'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-            'enunciado': 'Questão de exemplo sobre SUS',
-            'alternativas': [
-                {'id': 'A', 'texto': 'Alternativa A'},
-                {'id': 'B', 'texto': 'Alternativa B'},
-                {'id': 'C', 'texto': 'Alternativa C'},
-                {'id': 'D', 'texto': 'Alternativa D'},
-                {'id': 'E', 'texto': 'Alternativa E'}
-            ],
-            'gabarito': 'C',
-            'explicacao': 'Explicação da resposta correta',
-            'dificuldade': 'medio',
-            'tema': 'SUS'
-        }
-        
-        print(f"✅ Questão fallback gerada: {questao_personalizada['enunciado'][:50]}...")
-        
-        return jsonify({
-            'questao': questao_personalizada
-        })
+# Rota removida - usando apenas a rota do blueprint questoes.py
 
 @app.route('/api/questoes/<questao_id>/responder', methods=['POST'])
 def responder_questao(questao_id):
@@ -146,6 +76,78 @@ def responder_questao(questao_id):
         'gabarito': 'C',
         'explicacao': 'Explicação detalhada da resposta'
     })
+
+@app.route('/api/usuarios/perfil', methods=['GET'])
+def get_user_profile():
+    """Endpoint para obter perfil do usuário"""
+    try:
+        # Dados simulados de perfil para desenvolvimento
+        user_profile = {
+            'id': 'user-123',
+            'nome': 'Usuário Teste',
+            'email': 'usuario@teste.com',
+            'cargo': 'Enfermeiro',
+            'bloco': 'Saúde',
+            'nivel_escolaridade': 'Superior',
+            'vida': 80,
+            'pontuacao': 2847,
+            'status': 'ativo',
+            'plano': 'gratuito',
+            'data_criacao': datetime.now().isoformat(),
+            'ultimo_acesso': datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': user_profile
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar perfil: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao carregar perfil do usuário'
+        }), 500
+
+@app.route('/api/performance', methods=['GET'])
+def get_performance():
+    """Endpoint para obter dados de performance do usuário"""
+    try:
+        # Dados simulados de performance para desenvolvimento
+        performance_data = {
+            'questoes_respondidas': 1247,
+            'questoes_corretas': 1059,
+            'taxa_acerto': 85.0,
+            'tempo_total_estudo': 18420,
+            'dias_consecutivos': 12,
+            'melhor_sequencia': 28,
+            'nivel_atual': 23,
+            'xp_atual': 2847,
+            'xp_proximo_nivel': 3000,
+            'ranking_posicao': 156,
+            'ranking_total': 2847,
+            'percentil': 94.5,
+            'favoritas': 23,
+            'listas_revisao': 8,
+            'simulados_completos': 15,
+            'media_tempo_questao': 45,
+            'questoes_hoje': 15,
+            'meta_diaria': 20,
+            'progresso_semanal': 78,
+            'meta_semanal': 140
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': performance_data
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar performance: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao carregar dados de performance'
+        }), 500
 
 @app.route('/api/perplexity/explicacao', methods=['POST'])
 def obter_explicacao_perplexity():

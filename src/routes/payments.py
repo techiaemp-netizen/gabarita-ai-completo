@@ -9,12 +9,15 @@ import mercadopago
 from datetime import datetime, timedelta
 import hashlib
 import hmac
-from config import firebase_config
+from config.firebase_config import firebase_config
+
+# Obter conexão com Firebase
+db = firebase_config.get_db()
 
 payments_bp = Blueprint('payments', __name__)
 
 # Configurar Mercado Pago
-mercado_pago_token = os.getenv('MERCADO_PAGO_ACCESS_TOKEN')
+mercado_pago_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN')
 if mercado_pago_token and mercado_pago_token.strip() != '' and 'your_' not in mercado_pago_token:
     try:
         sdk = mercadopago.SDK(mercado_pago_token)
@@ -29,7 +32,7 @@ if mercado_pago_token and mercado_pago_token.strip() != '' and 'your_' not in me
         sdk = None
 else:
     print("[PAYMENTS] ❌ Token do Mercado Pago não configurado")
-    print("[PAYMENTS] 📝 Configure MERCADO_PAGO_ACCESS_TOKEN no arquivo .env")
+    print("[PAYMENTS] 📝 Configure MERCADOPAGO_ACCESS_TOKEN no arquivo .env")
     print("[PAYMENTS] 📖 Consulte CONFIGURACAO_FIREBASE_MERCADOPAGO.md para ajuda")
     print("[PAYMENTS] 🔧 Modo desenvolvimento ativo - pagamentos desabilitados")
     sdk = None
